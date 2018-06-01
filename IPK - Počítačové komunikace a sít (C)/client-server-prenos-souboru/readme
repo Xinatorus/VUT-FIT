@@ -1,0 +1,5 @@
+Prelozeni pomoci makefile
+make/make all  - prelozi server i client
+make client 	- prelozeni pouze clienta
+make server 	- prelozeni serveru
+make clean		- vysiteni prelozenych souboru

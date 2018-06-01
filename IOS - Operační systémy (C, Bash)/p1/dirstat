@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+
+if test $# -eq 0
+	then
+	FILE_ERE=""
+	dir=$(pwd)
+else
+	if test $# -eq 1 
+		then
+		FILE_ERE=""
+		dir=$1
+	else 
+		if test $# -eq 2
+			then
+			if [ "$1" == "-i" ]
+				then
+				FILE_ERE=$2
+				dir=$(pwd)
+			else
+				echo "Chyba parametru"
+				exit
+			fi
+		else 
+			if test $# -eq 3
+				then
+				if [ "$1" == "-i" ]
+				then
+				FILE_ERE=$2
+				dir=$(pwd)
+				else
+					echo "Chyba parametru"
+					exit
+				fi
+				dir=$3
+			else 
+				echo "Chyba parametru"
+				exit
+			fi
+		fi
+	fi
+fi
+
+
+
+echo "Root directory: $dir"
+
+FilesCount=$(find $dir -type f  ! -name "$FILE_ERE"| wc -l)
+FoldersCount=$(find $dir -type d ! -name "$FILE_ERE"| wc -l)
+AverageFileCount=$(($FilesCount/$FoldersCount))
+MaxDepth=$(find $dir -type d ! -name "$FILE_ERE" -printf '%d:%p\n' | sort -n | tail -1 | sed -e 's/:.*//')
+
+LargestFile=$(find $dir -type f ! -name "$FILE_ERE" -exec ls -l {} \; | awk '{print $5}' | sort -n | tail -1)
+AverageFileSize=$(find $dir -type f ! -name "$FILE_ERE" -exec ls -l {} \; | awk '{prom += $5; i++;} END {printf "%d\n", prom/i;}')
+
+echo "Directories: " $FoldersCount
+echo "Max depth: " $MaxDepth
+echo "Average no. of files: " $AverageFileCount
+
+echo "  All files: " $FilesCount
+echo "  Average file size: " $AverageFileSize
+
+#median
+AllFiles=$(find $dir -type f ! -name "$FILE_ERE" -exec ls -l {} \; | awk '{print $5}' | sort -n)
+#echo $AllFiles
+
+
+
+parity=$(($FilesCount%2))
+if test $parity -eq 0
+	then #sudy pocet
+	Offset=$((($FilesCount/2)))
+	Median1=$(find $dir -type f ! -name "$FILE_ERE" -exec ls -l {} \; | awk '{print $5}' | sort -n | tail -$Offset | head -1)
+	
+	Offset=`expr $Offset + 1`
+	Median2=$(find $dir -type f ! -name "$FILE_ERE" -exec ls -l {} \; | awk '{print $5}' | sort -n | tail -$Offset | head -1)
+	Median=$((($Median2+$Median1)/2))
+else 
+	#lichy
+	#echo $AllFiles
+	Offset=$((($FilesCount/2)+1))
+	Median=$(find $dir -type f ! -name "$FILE_ERE" -exec ls -l {} \; | awk '{print $5}' | sort -n | tail -$Offset | head -1)
+fi
+echo "  File size median: " $Median
+
+#################################################################
+
+
+#get types of files
+AllFileType=$(find . -type f -name "*.*" ! -name "$FILE_ERE"  | sed -e 's/.*\/*\.//' | sort -u)
+echo "File extensions: " $AllFileType
+
+#######
+
+for ext in $AllFileType 
+do
+	FilesCount=$(find $dir -name "*.$ext" ! -name "$FILE_ERE" -type f | wc -l)
+	echo "Files .$ext:" $FilesCount
+	LargestFile=$(find $dir -name "*.$ext" ! -name "$FILE_ERE" -type f -exec ls -l {} \; | awk '{print $5}' | sort -n | tail -1)
+	echo "  Largest file .$ext:" $LargestFile
+	AverageFileSize=$(find $dir -name "*.$ext" ! -name "$FILE_ERE" -type f -exec ls -l {} \; | awk '{prom += $5; i++;} END {printf "%d\n", prom/i;}')
+	echo "  Average dile size .$ext:" $AverageFileSize
+
+
+	parity=$(($FilesCount%2))
+if test $parity -eq 0
+	then #sudy pocet
+	Offset=$((($FilesCount/2)))
+	Median1=$(find $dir -name "*.$ext" ! -name "$FILE_ERE" -type f -exec ls -l {} \; | awk '{print $5}' | sort -n | tail -$Offset | head -1)
+	
+	Offset=`expr $Offset + 1`
+	Median2=$(find $dir -name "*.$ext" ! -name "$FILE_ERE" -type f -exec ls -l {} \; | awk '{print $5}' | sort -n | tail -$Offset | head -1)
+	Median=$((($Median2+$Median1)/2))
+else 
+	#lichy
+	#echo $AllFiles
+	Offset=$((($FilesCount/2)+1))
+	Median=$(find $dir -name "*.$ext" ! -name "$FILE_ERE" -type f -exec ls -l {} \; | awk '{print $5}' | sort -n | tail -$Offset | head -1)
+fi
+echo "  File size median $ext: " $Median
+done 
